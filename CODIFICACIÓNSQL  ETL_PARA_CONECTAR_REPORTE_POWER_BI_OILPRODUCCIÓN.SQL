@@ -1,4 +1,4 @@
---- Crear tabla Raw
+--- Crear tabla Raw tabla reslpaldo
 
 CREATE TABLE raw_produccion (
     Date TEXT,
