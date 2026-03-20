@@ -1,6 +1,6 @@
---- Crear tabla Raw tabla respaldo
+--- Crear tabla Raw
 
-CREATE TABLE raw_produccion (
+CREATE TABLE raw_oilproduction (
     Date TEXT,
     Department TEXT,
     Municipality TEXT,
@@ -14,7 +14,7 @@ CREATE TABLE raw_produccion (
 
 --- Cargar archivo CSV a la tabla RAW
 
-COPY raw_produccion FROM 'C:\Crude Oil Production\Crude Oil Production.csv' HEADER CSV DELIMITER ';';
+COPY raw_oilproduction  FROM 'C:\Crude Oil Production\Crude Oil Production.csv' HEADER CSV DELIMITER ';';
 
 
 -- Se renombro la tabla Staging
@@ -36,7 +36,7 @@ CREATE TABLE stg_oilproduction (
 
 INSERT INTO stg_oilproduction 
     SELECT 
-    TO_DATE(fecha,'yyyy-dd-mm'),
+    TO_DATE(fecha, 'YYYY-MM-DD'),
     Department,
     Municipality,
     Operator,
@@ -45,17 +45,6 @@ INSERT INTO stg_oilproduction
     Country,
     NULLIF (Oil_barrels_per_day,'')::NUMERIC
 FROM raw_oilproduction;
- 
- ----Validar campo oil_barrels_per_day
-
-
-UPDATE stg_oilproduction
-SET Oil_barrels_per_day = 
-  CASE 
-    WHEN Oil_barrels_per_day::TEXT ~ '^[0-9]+(\.[0-9]+)?$'
-    THEN Oil_barrels_per_day::NUMERIC
-    ELSE NULL
-  END;
 
 
 ----- CREACION DE MODELO ESTRALLA
@@ -81,7 +70,7 @@ SELECT DISTINCT
   EXTRACT(YEAR FROM fecha),
   EXTRACT(MONTH FROM fecha),
   EXTRACT(DAY FROM fecha)
-FROM stg_produccion;
+FROM stg_oilproduction;
 
 ---- Crear Tabla dim campo
 
@@ -107,7 +96,7 @@ CREATE TABLE dim_operador (
 
 INSERT INTO dim_operador (operador)
 SELECT DISTINCT TRIM(operator)
-FROM stg_produccion;
+FROM stg_oilproduction;
 
 -- Crear tabla dim_ubicacion
 
@@ -134,14 +123,9 @@ contrato_id SERIAL PRIMARY KEY,
 contrato VARCHAR(50)
 );
 
-CREATE TABLE dim_contrato(
-contrato_id SERIAL PRIMARY KEY,
-contrato VARCHAR(50)
-);
 
 INSERT INTO dim_contrato(contrato)
-SELECT DISTINCT UPPER(TRIM(contract)
-)
+SELECT DISTINCT TRIM(contract)
 
 FROM stg_oilproduction
 WHERE contract IS NOT NULL;
@@ -154,7 +138,7 @@ CREATE TABLE fact_oilproduction (
     ubicacion_id INT REFERENCES dim_ubicacion(ubicacion_id),
     operador_id INT REFERENCES dim_operador(operador_id),
     campo_id INT REFERENCES dim_campo(campo_id),
-    contrato_id INT REFERENCES dim_campo(contrato_id),
+    contrato_id INT REFERENCES dim_contrato(contrato_id),
 
     oil_barrels_per_day NUMERIC
 );
@@ -185,4 +169,5 @@ JOIN dim_contrato ct
     ON s.contract = ct.contrato;
     
 
+    
     
